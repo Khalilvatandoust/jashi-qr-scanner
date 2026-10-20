@@ -1,0 +1,1 @@
+# jashi-qr-scanner
