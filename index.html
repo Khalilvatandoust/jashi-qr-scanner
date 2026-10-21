@@ -45,7 +45,7 @@ var __Html5QrcodeLibrary__;(()=>{var t={449:function(t,e,r){!function(t){"use st
      const appRaw=u.searchParams.get('app');
      if(!appRaw)throw new Error('نشانی سامانه جاشی در QR ثبت نشده است.');
      let app;try{app=new URL(appRaw);}catch(e){throw new Error('نشانی مقصد سامانه جاشی معتبر نیست.');}
-     const host=app.hostname.toLowerCase();const isJashiHost=host==='script.google.com'||host==='script.googleusercontent.com'||host.endsWith('.googleusercontent.com');if(app.protocol!=='https:'||!isJashiHost||!app.pathname.includes('/'))throw new Error('نشانی مقصد متعلق به سامانه جاشی نیست.');
+     const host=app.hostname.toLowerCase();const isJashiHost=host==='script.google.com'||host==='script.googleusercontent.com'||host.endsWith('.googleusercontent.com');if(app.protocol!=='https:'||!isJashiHost||!app.pathname.includes('/'))throw new Error('نشانی مقصد متعلق به سامانه جاشی نیست. میزبان شناسایی‌شده: '+app.protocol+'//'+app.hostname+' ؛ مسیر: '+app.pathname);
      app.search='';app.hash='';app.searchParams.set('shipment',shipment);return app.href;
    }
    if(!['script.google.com','script.googleusercontent.com'].includes(u.hostname.toLowerCase()))throw new Error('این QR متعلق به نشانی شناخته‌شدهٔ سامانه جاشی نیست.');
