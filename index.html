@@ -21,10 +21,10 @@ header{background:linear-gradient(120deg,#14532d,#2e8b57);color:#fff;padding:24p
 <header><div class="mark">▦</div><h1>اسکن QR محموله</h1><p>کارخانه فرآوری پسته جاشی<br>دوربین را مقابل برچسب QR محموله بگیرید.</p></header>
 <div class="content">
 <div id="reader"></div>
-<div class="actions" id="actions" style="display:none"><button id="startBtn" class="btn primary" type="button">تلاش دوباره برای باز کردن دوربین</button><button id="stopBtn" class="btn secondary" type="button" disabled>توقف دوربین</button></div>
-<div id="status" role="status" aria-live="polite">در حال باز کردن دوربین و آماده‌سازی اسکن QR…</div>
+<div class="actions"><button id="startBtn" class="btn primary" type="button">تلاش مجدد برای فعال‌سازی دوربین</button><button id="stopBtn" class="btn secondary" type="button" disabled>توقف دوربین</button></div>
+<div id="status" role="status" aria-live="polite">در حال فعال‌سازی خودکار دوربین… اگر مرورگر درخواست مجوز نشان داد، اجازهٔ دوربین را بدهید.</div>
 <div class="help">این صفحه فقط QR را می‌خواند و برای نمایش جزئیات، شما را به نشانی سامانه جاشی که داخل QR ثبت شده منتقل می‌کند. هیچ اطلاعات محموله‌ای در این صفحه ذخیره نمی‌شود.</div>
-
+<div class="manual"><label for="qrText">اگر QR به‌صورت متن در دسترس است، اینجا وارد کنید</label><input id="qrText" type="url" placeholder="https://script.google.com/... ?shipment=100-1" autocomplete="off"><div style="margin-top:10px"><button id="openBtn" class="btn secondary" style="width:100%" type="button">باز کردن محموله</button></div></div>
 </div><footer>اسکنر مستقل HTTPS · جاشی</footer>
 </main>
 <script>
@@ -37,9 +37,20 @@ var __Html5QrcodeLibrary__;(()=>{var t={449:function(t,e,r){!function(t){"use st
  function shipmentUrl(raw){
    const value=String(raw||'').trim();
    if(!value)throw new Error('متن QR خالی است.');
-   let u;try{u=new URL(value);}catch(e){throw new Error('QR باید شامل نشانی کامل سامانه جاشی باشد.');}
+   let u;try{u=new URL(value);}catch(e){throw new Error('QR باید شامل نشانی معتبر سامانه جاشی باشد.');}
    if(u.protocol!=='https:')throw new Error('نشانی QR باید با HTTPS شروع شود.');
-   if(!['script.google.com','script.googleusercontent.com'].includes(u.hostname.toLowerCase()))throw new Error('این QR متعلق به نشانی شناخته‌شدهٔ سامانه جاشی نیست.');
+   const host=u.hostname.toLowerCase();
+   const isScanner=host==='khalilvatandoust.github.io'&&u.pathname.startsWith('/jashi-qr-scanner');
+   if(isScanner){
+     const appRaw=u.searchParams.get('app');
+     const code=String(u.searchParams.get('shipment')||u.searchParams.get('code')||'').trim();
+     if(!appRaw||!code)throw new Error('نشانی QR فاقد نشانی مقصد یا کد محموله است.');
+     let app;try{app=new URL(appRaw);}catch(e){throw new Error('نشانی مقصد جاشی معتبر نیست.');}
+     const appHost=app.hostname.toLowerCase();
+     if(app.protocol!=='https:'||!(appHost==='script.google.com'||appHost.endsWith('.googleusercontent.com')))throw new Error('نشانی مقصد متعلق به سامانه جاشی نیست.');
+     app.search='';app.hash='';app.searchParams.set('shipment',code);return app.href;
+   }
+   if(!(host==='script.google.com'||host.endsWith('.googleusercontent.com')))throw new Error('این QR متعلق به نشانی شناخته‌شدهٔ سامانه جاشی نیست.');
    if(!u.searchParams.get('shipment'))throw new Error('پارامتر کد محموله (shipment) در QR پیدا نشد.');
    return u.href;
  }
@@ -52,15 +63,14 @@ var __Html5QrcodeLibrary__;(()=>{var t={449:function(t,e,r){!function(t){"use st
      if(typeof Html5Qrcode==='undefined')throw new Error('کتابخانهٔ اسکنر بارگذاری نشده؛ صفحه را با اینترنت فعال دوباره باز کنید.');
      if(!scanner)scanner=new Html5Qrcode('reader',{formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE],verbose:false});
      await scanner.start({facingMode:'environment'},{fps:10,qrbox:(w,h)=>{const size=Math.max(150,Math.min(280,w-24,h-24));return {width:size,height:size};},aspectRatio:1},decoded=>{if(busy){busy=false;openDecoded(decoded);}},()=>{});
-     $('stopBtn').disabled=false;status('دوربین فعال است؛ برچسب QR را در کادر دوربین قرار دهید.','ok');
-   }catch(e){busy=false;$('startBtn').disabled=false;$('actions').style.display='grid';let msg=e&&e.message?e.message:String(e);if(e&&e.name==='NotAllowedError')msg='مرورگر دسترسی دوربین را رد کرده است. مجوز سایت و مجوز دوربین Chrome را بررسی کنید؛ اگر هر دو مجازند، صفحه را ببندید و دوباره باز کنید.';else if(e&&e.name==='NotFoundError')msg='دوربین پیدا نشد.';else if(e&&e.name==='NotReadableError')msg='دوربین در برنامهٔ دیگری استفاده می‌شود؛ آن برنامه را ببندید و دوباره امتحان کنید.';status('فعال‌سازی دوربین ناموفق بود: '+msg,'err');}
+     $('stopBtn').disabled=false;$('startBtn').style.display='none';status('دوربین فعال است؛ برچسب QR را در کادر دوربین قرار دهید.','ok');
+   }catch(e){busy=false;$('startBtn').disabled=false;$('startBtn').style.display='inline-block';let msg=e&&e.message?e.message:String(e);if(e&&e.name==='NotAllowedError')msg='مرورگر دسترسی دوربین را رد کرده است. مجوز سایت و مجوز دوربین Chrome را بررسی کنید؛ اگر هر دو مجازند، صفحه را ببندید و دوباره باز کنید.';else if(e&&e.name==='NotFoundError')msg='دوربین پیدا نشد.';else if(e&&e.name==='NotReadableError')msg='دوربین در برنامهٔ دیگری استفاده می‌شود؛ آن برنامه را ببندید و دوباره امتحان کنید.';status('فعال‌سازی دوربین ناموفق بود: '+msg,'err');}
  }
  async function stop(){if(scanner){try{if(scanner.isScanning)await scanner.stop();}catch(e){}try{scanner.clear();}catch(e){}}$('stopBtn').disabled=true;$('startBtn').disabled=false;busy=false;}
- $('startBtn').addEventListener('click',start);$('stopBtn').addEventListener('click',async()=>{await stop();status('دوربین متوقف شد. برای ادامه، تلاش دوباره را بزنید.');$('actions').style.display='grid';});
+ $('startBtn').addEventListener('click',start);$('stopBtn').addEventListener('click',async()=>{await stop();$('startBtn').style.display='inline-block';status('دوربین متوقف شد. برای ادامه، تلاش مجدد را بزنید.');});$('openBtn').addEventListener('click',()=>openDecoded($('qrText').value));
  window.addEventListener('pagehide',()=>{if(scanner&&scanner.isScanning)scanner.stop().catch(()=>{});});
- // Start the camera automatically as soon as the standalone HTTPS page opens.
- // Keep manual retry controls hidden unless startup fails.
- window.addEventListener('load',()=>{start();},{once:true});
+ status('در حال فعال‌سازی خودکار دوربین… اگر مجوز خواسته شد، اجازه بدهید.');
+ start();
 })();
 </script>
 </body>
